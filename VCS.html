@@ -200,13 +200,13 @@
         <h2>下载</h2>
         <div class="download-options">
             <a 
-  href="https://wwf.lanzoul.com/iOgbm2uqbfza" 
-  target="_blank" 
-  class="download-btn" 
-  style="text-decoration: none"
->
-  前往蓝奏云下载64-bit版本（提取码：a19m）
-</a>
+                href="https://developer-oss.lanrar.com/file/?BWMGOFloDj8DClZuCz5RPVNsDzdfVgJpVyJaKAYvBGQBbVQjWUcAOwgzV2xRZFc4BzkDJlZaVC8KflMhUWhUOAUlBidZNQ50A2RWLgs6UShTbA8sX2YCaVc8WjkGBQRsAWVUPlk2AGcIalc2UTFXZAdoAzZWOVRwCmtTJlEwVGQFNwZoWTwObQNmVjMLalF2U3kPel89AjJXYFpuBm8EKgExVDdZKwBmCGZXLlEzV2QHaANiVj1UZQo/U2NRPVQxBTIGYVk8Dj8DM1YwCz1RMlNtD2tfNwJkV2laOAZjBGQBMVQ3WWIAZgg6VzhRK1czByUDY1YvVCMKflMwUX9UPAVhBmxZMA5uA2xWMgtvUWBTPw8sX3QCaVc9WjkGPAQ4ATBUNFkwAGEIZ1c1UTRXYgdqAzZWJ1R4CitTM1FhVCIFOAZhWSIOLwMlVncLYlFhUz4PPl81AjhXYVprBmwENAEzVCVZcQA9CC5XPFE0V24HbgMoVjtUZgo/U3tRP1R7BTcGYlk2DnQDc1ZkCzBRJ1NnD1VfYwJrV21abAZ0BCMBdVR6WXQAMQgBV3RRZFdrB20=" 
+                target="_blank" 
+                class="download-btn" 
+                style="text-decoration: none"
+            >
+                下载64-bit版本
+            </a>
         </div>
     </section>
 
@@ -260,5 +260,43 @@
             document.querySelector('.hero-content').style.opacity = 1;
         }, 500);
     </script>
+    <!-- 在导航栏中确保文档链接存在 -->
+<nav class="navbar">
+    <div class="nav-links">
+        <a href="#home">首页</a>
+        <a href="#features">功能</a>
+        <a href="#download">下载</a>
+        <a href="#docs">文档</a> <!-- 已存在的文档导航链接 -->
+    </div>
+</nav>
+
+<!-- 新增文档展示区块 -->
+<section id="docs" class="section">
+    <div class="feature-card">
+        <h2>官方文档</h2>
+        <div class="documentation-list" style="margin-top: 2rem;">
+            <!-- PDF文档下载按钮 -->
+            <a href="https://api.hostize.com/files/wyietiT98H/download/file.pdf" 
+               class="download-btn" 
+               target="_blank"
+               style="text-decoration: none; margin: 1rem 0;"
+               download="VCS_v1.1使用手册.pdf">
+                下载VCS v1.1手册（PDF）
+            </a>
+            
+            <!-- 文档说明 -->
+            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--card-bg); border-radius: 12px;">
+                <h3>文档版本说明</h3>
+                <p style="margin: 1rem 0;">包含以下核心内容：</p>
+                <ul style="padding-left: 2rem;">
+                    <li>基础指令使用指南</li>
+                    <li>高级功能操作说明</li>
+                    <li>系统调试指令详解</li>
+                    <li>网页浏览功能教程</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
 </body>
 </html>
