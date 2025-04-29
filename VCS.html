@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Command System - 定义，创新，超越</title>
+    <link rel="icon" type="image/x-icon" href="https://api.hostize.com/files/GFC_k1lBGF/download/file.ico">
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* 颜色变量定义 */
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #00ff88;
+            --card-bg: rgba(255,255,255,0.1);
+            --nav-bg: rgba(0,0,0,0.8);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f5f5f5;
+            --text-color: #1a1a1a;
+            --accent-color: #007bff;
+            --card-bg: rgba(0,0,0,0.1);
+            --nav-bg: rgba(255,255,255,0.8);
+        }
+
+        /* 动画定义 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 页面样式 */
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .navbar {
+            padding: 1.5rem;
+            position: fixed;
+            width: 100%;
+            background: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            transition: background 0.3s;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(45deg, var(--bg-color), 
+                color-mix(in srgb, var(--bg-color) 70%, var(--text-color)));
+        }
+
+        .hero-content {
+            opacity: 0;
+            animation: fadeInUp 1s forwards;
+            animation-delay: 0.5s;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin-top: 2rem;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,255,136,0.5);
+        }
+
+        .section {
+            padding: 5rem 2rem;
+            min-height: 100vh;
+            opacity: 0;
+            transition: 1s;
+        }
+
+        .section.active {
+            opacity: 1;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 1rem;
+            transition: 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* 主题切换按钮 */
+        .theme-toggle {
+            position: fixed;
+            right: 2rem;
+            top: 1.5rem;
+            z-index: 1000;
+            background: var(--card-bg);
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" id="themeToggle">
+        <span class="theme-icon">🌙</span>
+        <span class="theme-text">深色模式</span>
+    </button>
+
+    <nav class="navbar">
+        <div class="nav-links">
+            <a href="#home">首页</a>
+            <a href="#features">功能</a>
+            <a href="#download">下载</a>
+            <a href="#docs">文档</a>
+        </div>
+    </nav>
+
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1 style="font-size: 3.5rem; margin-bottom: 1rem;">Virtual Command System</h1>
+            <h1 style="font-size: 3.5rem; margin-bottom: 1rem;">Virtual Command System v1.1现已发布</h1>
+            <p style="font-size: 1.2rem; color: color-mix(in srgb, var(--text-color) 70%, transparent);">
+                新一代系统指令窗口
+            </p>
+            <p style="font-size: 1.2rem; color: color-mix(in srgb, var(--text-color) 70%, transparent);">
+                绿色 开源 免费
+            </p>
+            <a href="#download" class="download-btn">立即下载 v1.1</a>
+        </div>
+    </section>
+
+    <section id="features" class="section">
+        <div class="feature-card">
+            <h2>核心功能</h2>
+            <p>进程结束 | 硬件查看 | 系统信息……</p>
+        </div>
+        <div class="feature-card">
+            <h2>兼容</h2>
+            <p>Windows 10/11及更早版本</p>
+            <p>暂不兼容MacOS及Linux</p>
+        </div>
+    </section>
+
+    <section id="download" class="section">
+        <h2>下载</h2>
+        <div class="download-options">
+            <a 
+  href="https://wwf.lanzoul.com/iOgbm2uqbfza" 
+  target="_blank" 
+  class="download-btn" 
+  style="text-decoration: none"
+>
+  前往蓝奏云下载64-bit版本（提取码：a19m）
+</a>
+        </div>
+    </section>
+
+    <script>
+        // 主题切换逻辑
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+
+        // 初始化主题
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        htmlElement.setAttribute('data-theme', savedTheme);
+        updateThemeButton(savedTheme);
+
+        // 切换主题事件
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            htmlElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        });
+
+        // 更新按钮状态
+        function updateThemeButton(theme) {
+            const icon = theme === 'dark' ? '🌙' : '☀️';
+            const text = theme === 'dark' ? '深色模式' : '浅色模式';
+            themeToggle.querySelector('.theme-icon').textContent = icon;
+            themeToggle.querySelector('.theme-text').textContent = text;
+        }
+
+        // 原有功能脚本
+        window.addEventListener('scroll', () => {
+            document.querySelectorAll('.section').forEach(section => {
+                const sectionTop = section.getBoundingClientRect().top;
+                if(sectionTop < window.innerHeight * 0.8) {
+                    section.classList.add('active');
+                }
+            });
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        setTimeout(() => {
+            document.querySelector('.hero-content').style.opacity = 1;
+        }, 500);
+    </script>
+</body>
+</html>
