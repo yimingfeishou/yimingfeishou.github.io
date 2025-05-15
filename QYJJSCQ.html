@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能绝句生成系统</title>
+    <style>
+        body {
+            font-family: "宋体", SimSun, serif;
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+            background-color: #f0f8ff;
+        }
+        #title {
+            font-family: "宋体", SimSun;
+            font-weight: bold;
+            font-size: 26px;
+            color: #2c3e50;
+            margin: 20px 0;
+            letter-spacing: 2px;
+        }
+        #poem {
+            font-size: 24px;
+            line-height: 2.5;
+            margin: 30px;
+            padding: 20px;
+            border: 2px dashed #4a90e2;
+            border-radius: 10px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <h2>智能绝句生成系统</h2>
+    <div id="title"></div>
+    <div id="poem"></div>
+    <button onclick="generatePoem()">生成新诗</button>
+
+    <script>
+        // 增强版字库
+        const lexicon = {
+            themes: ["戍边","征战","怀古","秋思","夜巡","凯旋","望月","闻笛"],
+            locations: ["玉门关","阳关道","祁连山","居延海","河西郡","焉支山","敦煌郡","疏勒城"],
+            modifiers: ["血染","尘封","霜凝","雪拥","风卷","云暗","星垂","月冷"],
+            actions: ["传刁斗","动秋声","催战鼓","卷旌旗","照铁衣","没石棱","惊戍客","断人肠"],
+            rhymes: ["难","关","寒","残","斑","安","看","漫","还"]
+        };
+
+        // 智能标题生成器
+        function generateTitle(poem) {
+            const keywords = [
+                poem[0].substr(0,2),  // 首句首二字
+                poem[1].substr(4,2),  // 次句末二字
+                poem[2].substr(2,2),  // 三句中二字
+                poem[3].substr(0,2)   // 末句首二字
+            ];
+            
+            // 生成5-8字标题
+            const patterns = [
+                () => `${keywords[0]}·${keywords[1]}`,          // XX·XX 格式
+                () => `${keywords[0]}${keywords[2]}吟`,         // XXXX吟 格式
+                () => `夜${keywords[3]}`,                      // 夜XX 格式
+                () => `${keywords[1]}怀古`,                     // XX怀古 格式
+                () => `${keywords[0]}${keywords[3]}行`,         // XXXX行 格式
+                () => `秋${keywords[2]}`,                      // 秋XX 格式
+                () => `${keywords[0]}${keywords[1]}杂咏`,       // 杂咏 格式
+                () => `塞${keywords[3]}曲`                     // 塞XX曲 格式
+            ];
+            
+            let title;
+            do {
+                title = patterns[Math.random()*patterns.length|0]();
+            } while(title.length <5 || title.length >8);
+            
+            return title;
+        }
+
+        // 稳定版生成函数
+        function generatePoem() {
+            try {
+                const rhyme = lexicon.rhymes[Math.random()*lexicon.rhymes.length|0];
+                const poem = [
+                    lexicon.modifiers[Math.random()*8|0] + lexicon.locations[Math.random()*8|0] + lexicon.actions[Math.random()*8|0].substr(0,3),
+                    lexicon.locations[Math.random()*8|0] + lexicon.actions[Math.random()*8|0].substr(0,3) + rhyme,
+                    lexicon.modifiers[Math.random()*8|0] + lexicon.actions[Math.random()*8|0].substr(0,3) + lexicon.locations[Math.random()*8|0].substr(0,2),
+                    lexicon.locations[Math.random()*8|0] + lexicon.actions[Math.random()*8|0].substr(0,3) + rhyme
+                ];
+
+                // 强制七言格式
+                poem.forEach((line, i) => {
+                    poem[i] = line.slice(0,6) + (i%2 ? rhyme : line[6]);
+                    poem[i] = poem[i].substr(0,7);
+                });
+
+                // 生成智能标题
+                const title = generateTitle(poem);
+                
+                // 更新页面
+                document.getElementById("title").textContent = title;
+                document.getElementById("poem").innerHTML = poem.join("<br>");
+            } catch(e) {
+                document.getElementById("poem").innerHTML = "诗情画意待重寻<br>请君再试生成键";
+            }
+        }
+
+        // 初始生成
+        generatePoem();
+    </script>
+</body>
+</html>
