@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>CPU-TEST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #eee;
+            margin: 10px 0;
+        }
+        .progress {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>CPU性能测试工具</h1>
+    
+    <div class="test-container">
+        <h2>CPU性能测试</h2>
+        <div class="progress-bar">
+            <div class="progress" id="cpu-progress"></div>
+        </div>
+        <button onclick="startCPUTest()">开始CPU测试</button>
+        <button onclick="stopTests()" style="background-color: #f44336;">停止测试</button>
+        <h3>测试期间您的CPU占用率会上升，无需担心，这属于正常现象</h3>
+    </div>
+
+    <div class="result" id="result">
+        测试结果将显示在这里...
+    </div>
+
+    <script>
+        let workers = [];
+        let isTesting = false;
+
+        // CPU测试逻辑
+        async function startCPUTest() {
+            if(isTesting) return;
+            isTesting = true;
+            document.getElementById('result').innerHTML = "测试进行中...";
+            
+            const results = {};
+            const progress = document.getElementById('cpu-progress');
+            
+            // 1. 单线程整数运算测试
+            progress.style.width = '25%';
+            results.integerOps = await runCPUTest(() => {
+                let sum = 0;
+                for(let i = 0; i < 1e8; i++) {
+                    sum += i * i;
+                }
+                return sum;
+            });
+
+            // 2. 单线程浮点运算测试
+            progress.style.width = '50%';
+            results.floatOps = await runCPUTest(() => {
+                let sum = 0.0;
+                for(let i = 0; i < 1e7; i++) {
+                    sum += Math.sqrt(i) * Math.sin(i);
+                }
+                return sum;
+            });
+
+            // 3. 多线程性能测试
+            progress.style.width = '75%';
+            results.multiThread = await runMultiThreadTest();
+
+            // 4. 内存访问测试
+            progress.style.width = '100%';
+            results.memoryAccess = await runMemoryTest();
+
+            // 综合评分
+            const totalScore = 
+                results.integerOps * 0.3 + 
+                results.floatOps * 0.3 + 
+                results.multiThread * 0.2 +
+                results.memoryAccess * 0.2;
+            
+            showResult(`
+                <h3>CPU测试结果</h3>
+                <p><strong>整数运算性能:</strong> ${formatNumber(results.integerOps)} ops/s</p>
+                <p><strong>浮点运算性能:</strong> ${formatNumber(results.floatOps)} ops/s</p>
+                <p><strong>多线程性能:</strong> ${formatNumber(results.multiThread)} ops/s</p>
+                <p><strong>内存访问性能:</strong> ${formatNumber(results.memoryAccess)} ops/s</p>
+                <hr>
+                <p><strong>综合评分:</strong> ${formatNumber(totalScore)} （越高越好）</p>
+                <p>测试完成时间: ${new Date().toLocaleTimeString()}</p>
+            `);
+            
+            isTesting = false;
+        }
+
+        function runCPUTest(task) {
+            return new Promise(resolve => {
+                const start = performance.now();
+                const result = task();
+                const time = performance.now() - start;
+                resolve(1e8 / (time / 1000)); // 计算每秒操作数
+            });
+        }
+
+        function runMultiThreadTest() {
+            return new Promise(resolve => {
+                workers = [];
+                const workerCount = navigator.hardwareConcurrency || 4;
+                let completed = 0;
+                let totalOps = 0;
+                
+                for(let i = 0; i < workerCount; i++) {
+                    const worker = new Worker(URL.createObjectURL(
+                        new Blob([`
+                            onmessage = () => {
+                                let sum = 0;
+                                const start = Date.now();
+                                while(Date.now() - start < 2000) {
+                                    sum += Math.sqrt(Math.random()) * Math.sin(Math.random());
+                                }
+                                postMessage(sum);
+                            }
+                        `])
+                    ));
+
+                    workers.push(worker);
+
+                    worker.onmessage = () => {
+                        completed++;
+                        totalOps += 1e6; // 估算操作数
+                        if(completed === workerCount) {
+                            resolve(totalOps / 2); // 2秒测试时间
+                        }
+                    };
+                    worker.postMessage(null);
+                }
+            });
+        }
+
+        function runMemoryTest() {
+            return new Promise(resolve => {
+                const size = 1e6; // 1百万个元素
+                const array = new Float64Array(size);
+                
+                // 填充数组
+                for(let i = 0; i < size; i++) {
+                    array[i] = Math.random();
+                }
+                
+                // 测试顺序访问
+                const start = performance.now();
+                let sum = 0;
+                for(let i = 0; i < size; i++) {
+                    sum += array[i];
+                }
+                const time = performance.now() - start;
+                
+                resolve(size / (time / 1000)); // 每秒访问次数
+            });
+        }
+
+        function stopTests() {
+            if(!isTesting) return;
+            
+            // 终止所有Web Workers
+            workers.forEach(worker => worker.terminate());
+            workers = [];
+            isTesting = false;
+            
+            document.getElementById('cpu-progress').style.width = '0%';
+            document.getElementById('result').innerHTML = "测试已中止";
+        }
+
+        function showResult(text) {
+            document.getElementById('result').innerHTML = text;
+        }
+
+        function formatNumber(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+    </script>
+</body>
+</html>
