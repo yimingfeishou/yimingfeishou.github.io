@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>GPU-TEST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #000; /* 字体颜色改为黑色 */
+        }
+        .test-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #eee;
+            margin: 10px 0;
+        }
+        .progress {
+            height: 100%;
+            background-color: #2196F3;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            line-height: 1.4; /* 恢复初版行距 */
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPU性能测试工具</h1>
+    
+    <div class="test-container">
+        <h2>GPU性能测试</h2>
+        <div class="progress-bar">
+            <div class="progress" id="gpu-progress"></div>
+        </div>
+        <button onclick="startGPUTest()">开始GPU测试</button>
+        <button onclick="stopTests()" style="background-color: #f44336;">停止测试</button>
+        <h3>测试期间您的GPU占用率可能会上升，不必担心，这属于正常现象</h3>
+        <canvas id="gpu-canvas"></canvas>
+    </div>
+
+    <div class="result" id="result">
+        测试结果将显示在这里...
+    </div>
+
+    <a href="https://yimingfeishou.github.io/CPU-TEST.html" target="_blank">CPU测试</a>
+
+    <script>
+        let isTesting = false;
+        let animationFrame;
+        const canvas = document.getElementById('gpu-canvas');
+        // 优先使用WebGL 2.0，回退到WebGL 1.0
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        let currentTest = 0;
+        let lastProgressUpdate = 0; // 记录上次进度更新时间
+        
+        // 创建全屏三角形的顶点缓冲区
+        const fullscreenBuffer = createFullscreenTriangleBuffer(gl);
+        
+        // 调整Canvas尺寸以适应容器
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            canvas.width = Math.min(containerWidth, 1920);
+            canvas.height = canvas.width * 9 / 16; // 16:9比例
+        }
+        
+        // 窗口大小改变时重设Canvas
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 创建全屏三角形的顶点缓冲区
+        function createFullscreenTriangleBuffer(gl) {
+            // 创建一个覆盖整个屏幕的三角形
+            const vertices = new Float32Array([
+                -1.0, -1.0,
+                3.0, -1.0,
+                -1.0, 3.0
+            ]);
+            
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            
+            return buffer;
+        }
+
+        async function startGPUTest() {
+            if(!gl || isTesting) return;
+            isTesting = true;
+            document.getElementById('result').textContent = "测试进行中...";
+            currentTest = 0;
+            const totalTests = 4;
+            const results = {};
+            const progress = document.getElementById('gpu-progress');
+            
+            try {
+                // 逐个执行测试阶段
+                while(currentTest < totalTests && isTesting) {
+                    // 显示当前测试名称
+                    document.getElementById('result').textContent = `测试进行中: ${getTestName(currentTest)}`;
+                    
+                    // 更新进度条并添加微小延迟，确保UI更新
+                    progress.style.width = `${(currentTest+1)/totalTests*100}%`;
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 执行测试
+                    switch(currentTest) {
+                        case 0:
+                            results.fragmentShader = await runFractalTest();
+                            break;
+                        case 1:
+                            results.geometryProcessing = await runBatchGeometryTest();
+                            break;
+                        case 2:
+                            results.textureFillRate = await run4KTextureTest();
+                            break;
+                        case 3:
+                            results.volumeRendering = await runVolumeShaderTest();
+                            break;
+                    }
+                    
+                    // 增加当前测试计数
+                    currentTest++;
+                }
+
+                if(isTesting) {
+                    // 计算综合评分
+                    const totalScore = 
+                        results.fragmentShader * 0.2 + 
+                        results.geometryProcessing * 0.2 + 
+                        results.textureFillRate * 0.2 +
+                        results.volumeRendering * 0.4;
+                    
+                    showResult(`
+                        <h3>GPU满载测试结果</h3>
+                        <p><strong>分形计算性能:</strong> ${formatNumber(results.fragmentShader)} ITERS/sec</p>
+                        <p><strong>几何吞吐量:</strong> ${formatNumber(results.geometryProcessing)} primitives/s</p>
+                        <p><strong>4K纹理填充:</strong> ${formatNumber(results.textureFillRate)} MPixels/s</p>
+                        <p><strong>体积渲染性能:</strong> ${formatNumber(results.volumeRendering)} FPS （受显示器影响）</p>
+                        <hr>
+                        <p><strong>综合负载评分:</strong> ${formatNumber(totalScore)} （越高越好）</p>
+                        <p>测试完成时间: ${new Date().toLocaleTimeString()}</p>
+                    `);
+                }
+            } catch (error) {
+                console.error("测试过程中出错:", error);
+                document.getElementById('result').textContent = `测试出错: ${error.message}`;
+            } finally {
+                isTesting = false;
+            }
+        }
+
+        // 获取当前测试名称
+        function getTestName(index) {
+            const names = [
+                "片段着色器压力测试",
+                "几何批量渲染测试",
+                "高分辨率纹理填充",
+                "体积渲染压力测试"
+            ];
+            return names[index] || "未知测试";
+        }
+
+        // 分形片段着色器测试（高迭代计算）
+        function runFractalTest() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const startTime = performance.now();
+                    let iterations = 0;
+                    const program = createFractalProgram(gl);
+                    
+                    // 设置顶点属性
+                    const positionLocation = gl.getAttribLocation(program, "position");
+                    gl.enableVertexAttribArray(positionLocation);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, fullscreenBuffer);
+                    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+                    
+                    function render() {
+                        if(!isTesting) return resolve(0);
+                        iterations++;
+                        
+                        // 每100帧更新一次进度显示
+                        if(iterations % 100 === 0) {
+                            updateProgress(startTime, 3000);
+                        }
+                        
+                        gl.uniform1f(gl.getUniformLocation(program, 'time'), performance.now()*0.001);
+                        gl.drawArrays(gl.TRIANGLES, 0, 3);
+                        
+                        if(performance.now() - startTime < 3000) {
+                            animationFrame = requestAnimationFrame(render);
+                        } else {
+                            resolve(iterations / 3);
+                        }
+                    }
+                    
+                    gl.useProgram(program);
+                    render();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // 批量几何渲染测试（10万三角形）
+        function runBatchGeometryTest() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const start = performance.now();
+                    const geometry = createLargeGeometry(gl, 1e5);
+                    let primitives = 0;
+                    
+                    function render() {
+                        if(!isTesting) return resolve(0);
+                        primitives += geometry.vertexCount;
+                        
+                        // 每50帧更新一次进度
+                        if(primitives % (geometry.vertexCount * 50) === 0) {
+                            updateProgress(start, 2000);
+                        }
+                        
+                        gl.drawElements(gl.TRIANGLES, geometry.indexCount, gl.UNSIGNED_INT, 0);
+                        
+                        if(performance.now() - start < 2000) {
+                            animationFrame = requestAnimationFrame(render);
+                        } else {
+                            resolve(primitives / 2);
+                        }
+                    }
+                    
+                    gl.useProgram(createBasicProgram(gl));
+                    
+                    // 设置顶点属性
+                    const positionLocation = gl.getAttribLocation(createBasicProgram(gl), "position");
+                    gl.enableVertexAttribArray(positionLocation);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, geometry.vbo);
+                    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+                    
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.ibo);
+                    
+                    render();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // 4K纹理填充测试（实时更新超大纹理）
+        function run4KTextureTest() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const texture = gl.createTexture();
+                    // 根据设备能力调整纹理大小
+                    const size = Math.min(2048, window.innerWidth);
+                    const data = new Uint8Array(size*size*4);
+                    let pixels = 0;
+                    const start = performance.now();
+                    
+                    function updateTexture() {
+                        if(!isTesting) return resolve(0);
+                        
+                        // 每20次更新显示进度
+                        if(pixels % (size*size*20) === 0) {
+                            updateProgress(start, 2000);
+                        }
+                        
+                        for(let i=0; i<data.length; i+=4) {
+                            data[i] = Math.sin((i/4+performance.now()*100)%256)*127+128;
+                        }
+                        
+                        gl.bindTexture(gl.TEXTURE_2D, texture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+                        pixels += size*size;
+                        
+                        if(performance.now() - start < 2000) {
+                            animationFrame = requestAnimationFrame(updateTexture);
+                        } else {
+                            resolve(pixels / 2 / 1e6);
+                        }
+                    }
+                    
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                    updateTexture();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // 体积渲染测试（模仿Volume Shader BM的分形算法）
+        function runVolumeShaderTest() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const program = createVolumeProgram(gl);
+                    const startTime = performance.now();
+                    let frames = 0;
+                    
+                    // 设置顶点属性
+                    const positionLocation = gl.getAttribLocation(program, "position");
+                    gl.enableVertexAttribArray(positionLocation);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, fullscreenBuffer);
+                    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+                    
+                    function render() {
+                        if(!isTesting) return resolve(0);
+                        frames++;
+                        
+                        // 每10帧更新一次进度
+                        if(frames % 10 === 0) {
+                            updateProgress(startTime, 5000);
+                        }
+                        
+                        gl.uniform1f(gl.getUniformLocation(program, 'time'), performance.now()*0.001);
+                        gl.uniform2f(gl.getUniformLocation(program, 'resolution'), canvas.width, canvas.height);
+                        gl.drawArrays(gl.TRIANGLES, 0, 3);
+                        
+                        if(performance.now() - startTime < 5000) {
+                            animationFrame = requestAnimationFrame(render);
+                        } else {
+                            resolve(frames / 5);
+                        }
+                    }
+                    
+                    gl.useProgram(program);
+                    render();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // 更新进度显示
+        function updateProgress(startTime, totalTime) {
+            const elapsed = performance.now() - startTime;
+            const percent = Math.min(100, (elapsed / totalTime) * 100);
+            
+            // 防止过于频繁的更新
+            if(performance.now() - lastProgressUpdate > 200) {
+                document.getElementById('result').textContent = `测试进行中: ${getTestName(currentTest)} (${percent.toFixed(0)}%)`;
+                lastProgressUpdate = performance.now();
+            }
+        }
+
+        // 停止测试逻辑
+        function stopTests() {
+            if(!isTesting) return;
+            isTesting = false;
+            cancelAnimationFrame(animationFrame);
+            document.getElementById('gpu-progress').style.width = '0%';
+            document.getElementById('result').textContent = "测试已中止";
+            currentTest = 0;
+        }
+
+        // --- 着色器程序创建 --- //
+
+        function createFractalProgram(gl) {
+            const vs = `
+                attribute vec2 position;
+                varying vec2 v_position;
+                void main() {
+                    gl_Position = vec4(position, 0.0, 1.0);
+                    v_position = position;
+                }
+            `;
+            const fs = `
+                precision highp float;
+                uniform float time;
+                varying vec2 v_position;
+                void main() {
+                    vec2 p = v_position;
+                    float i = 0.0, m = 0.0;
+                    for(int j=0; j<256; j++) {
+                        p = sin(p*6.283)*0.5 + 0.5;
+                        m += length(p - vec2(sin(time*0.5), cos(time*0.7)));
+                        i += 1.0;
+                    }
+                    gl_FragColor = vec4(m/i, m/i*0.5, m/i*0.2, 1.0);
+                }
+            `;
+            return createProgram(gl, vs, fs);
+        }
+
+        function createVolumeProgram(gl) {
+            const vs = `
+                attribute vec2 position;
+                void main() {
+                    gl_Position = vec4(position, 0.0, 1.0);
+                }
+            `;
+            const fs = `
+                precision highp float;
+                uniform float time;
+                uniform vec2 resolution;
+                uniform sampler2D noiseTexture;
+                
+                float noise(vec3 p) {
+                    vec3 i = floor(p);
+                    vec3 f = fract(p);
+                    vec4 a = texture2D(noiseTexture, i.xy*0.25+0.5).rgba;
+                    vec4 b = texture2D(noiseTexture, (i.xy+vec2(1,0))*0.25+0.5).rgba;
+                    vec4 c = texture2D(noiseTexture, (i.xy+vec2(0,1))*0.25+0.5).rgba;
+                    vec4 d = texture2D(noiseTexture, (i.xy+vec2(1,1))*0.25+0.5).rgba;
+                    vec2 u = f.xy*f.xy*(3.0-2.0*f.xy);
+                    return mix(mix(a.x, b.x, u.x), mix(c.x, d.x, u.x), u.y) * (2.0 - f.z*4.0);
+                }
+                
+                void main() {
+                    vec2 uv = gl_FragCoord.xy/resolution;
+                    vec3 p = vec3(uv*2.0-1.0, time*0.5);
+                    float d = 0.0, s = 1.0, o = 0.0;
+                    for(int i=0; i<64; i++) {
+                        d += abs(noise(p)) * s;
+                        p.xy *= 2.0; p.z += 0.5;
+                        s *= 0.8;
+                    }
+                    gl_FragColor = vec4(vec3(d*0.1), 1.0);
+                }
+            `;
+            const program = createProgram(gl, vs, fs);
+            
+            // 设置纹理单元
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, createNoiseTexture(gl));
+            gl.uniform1i(gl.getUniformLocation(program, 'noiseTexture'), 0);
+            
+            return program;
+        }
+
+        // 创建基础着色器程序
+        function createBasicProgram(gl) {
+            const vs = `
+                attribute vec3 position;
+                void main() {
+                    gl_Position = vec4(position, 1.0);
+                }
+            `;
+            const fs = `
+                precision mediump float;
+                void main() {
+                    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                }
+            `;
+            return createProgram(gl, vs, fs);
+        }
+
+        // --- 辅助工具函数 --- //
+
+        function createProgram(gl, vs, fs) {
+            const vsh = gl.createShader(gl.VERTEX_SHADER);
+            const fsh = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(vsh, vs);
+            gl.shaderSource(fsh, fs);
+            gl.compileShader(vsh);
+            gl.compileShader(fsh);
+            
+            // 检查编译错误
+            if(!gl.getShaderParameter(vsh, gl.COMPILE_STATUS)) {
+                console.error("顶点着色器编译错误:", gl.getShaderInfoLog(vsh));
+                throw new Error("顶点着色器编译错误: " + gl.getShaderInfoLog(vsh));
+            }
+            
+            if(!gl.getShaderParameter(fsh, gl.COMPILE_STATUS)) {
+                console.error("片段着色器编译错误:", gl.getShaderInfoLog(fsh));
+                throw new Error("片段着色器编译错误: " + gl.getShaderInfoLog(fsh));
+            }
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vsh);
+            gl.attachShader(program, fsh);
+            gl.linkProgram(program);
+            
+            // 检查链接错误
+            if(!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error("程序链接错误:", gl.getProgramInfoLog(program));
+                throw new Error("着色器程序链接错误: " + gl.getProgramInfoLog(program));
+            }
+            
+            return program;
+        }
+
+        function createLargeGeometry(gl, triangleCount) {
+            const vertices = new Float32Array(triangleCount*3*3);
+            const indices = new Uint32Array(triangleCount*3);
+            
+            // 初始化顶点数据
+            for(let i=0; i<triangleCount; i++) {
+                const idx = i * 9;
+                const idxi = i * 3;
+                
+                // 随机三角形
+                const x = (Math.random() * 2 - 1) * 100;
+                const y = (Math.random() * 2 - 1) * 100;
+                const z = (Math.random() * 2 - 1) * 100;
+                
+                vertices[idx] = x;
+                vertices[idx+1] = y;
+                vertices[idx+2] = z;
+                
+                vertices[idx+3] = x + Math.random() * 10;
+                vertices[idx+4] = y + Math.random() * 10;
+                vertices[idx+5] = z + Math.random() * 10;
+                
+                vertices[idx+6] = x + Math.random() * 10;
+                vertices[idx+7] = y - Math.random() * 10;
+                vertices[idx+8] = z + Math.random() * 10;
+                
+                indices[idxi] = idxi;
+                indices[idxi+1] = idxi+1;
+                indices[idxi+2] = idxi+2;
+            }
+            
+            const vbo = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            
+            const ibo = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+            
+            return { vertexCount: vertices.length/3, indexCount: indices.length, vbo, ibo };
+        }
+
+        function createNoiseTexture(gl) {
+            const data = new Uint8Array(4*4*4);
+            for(let i=0; i<data.length; i++) data[i] = Math.floor(Math.random()*256);
+            
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            
+            return texture;
+        }
+
+        function showResult(text) {
+            document.getElementById('result').innerHTML = text;
+        }
+
+        function formatNumber(num) {
+            return num.toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+    </script>
+</body>
+</html>
