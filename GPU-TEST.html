@@ -60,7 +60,7 @@
         <button onclick="startGPUTest()">开始GPU测试</button>
         <button onclick="stopTests()" style="background-color: #f44336;">停止测试</button>
         <h3>测试期间您的GPU占用率可能会上升，不必担心，这属于正常现象</h3>
-        <h3>注意，使用核显或集显可能会报错 [测试出错: 顶点着色器编译错误: null]，尽量使用独显测试</h3>
+        <h4>注意：使用核显或集显可能会报错 [测试出错: 顶点着色器编译错误: null]，尽量使用独显测试</h4>
         <canvas id="gpu-canvas"></canvas>
     </div>
 
@@ -69,6 +69,8 @@
     </div>
 
     <a href="https://yimingfeishou.github.io/CPU-TEST.html" target="_blank">CPU测试</a>
+
+    <h4>目前已知BUG：1. GPU跑不满，2. 移动端预览结果文字偏大，由于学业问题，作者不会在近期修复这个BUG，将在暑假时重构整个script和修复移动端字体偏大的问题</h4>
 
     <script>
         let isTesting = false;
@@ -158,7 +160,7 @@
                         results.volumeRendering * 0.4;
                     
                     showResult(`
-                        <h3>GPU满载测试结果</h3>
+                        <h3>GPU测试结果</h3>
                         <p><strong>分形计算性能:</strong> ${formatNumber(results.fragmentShader)} ITERS/sec</p>
                         <p><strong>几何吞吐量:</strong> ${formatNumber(results.geometryProcessing)} primitives/s</p>
                         <p><strong>4K纹理填充:</strong> ${formatNumber(results.textureFillRate)} MPixels/s</p>
